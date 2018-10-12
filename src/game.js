@@ -4,7 +4,6 @@ var keys = {};
 
 document.addEventListener('keydown', function(event) {
     keys[event.keyCode] = true;
-    movePlayer();
 });
 
 document.addEventListener('keyup', function(event) {
@@ -24,13 +23,13 @@ var platforms = [
 ]
 
 var player = {
-    x: platforms[1].x + 5,
+    x: 100,
     y: platforms[1].y - 50,
     width: 35,
     height: 35,
-    vx : 0,
+    vx : 1,
     vy : 0,
-    airborne: false
+    color: "#FF0000"
 }
 
 var camera = {
@@ -55,42 +54,40 @@ function rect(x, y, width, height, col) {
     ctx.restore();
 }
 
+var start = Date.now();
+
 function loop() {
     rect(0, 0, camera.width, camera.height, "#FFFFFF");
     
     doInput();
+    movePlayer();
 
     platforms.forEach(platform => {
         rectRelative(platform.x, platform.y, platform.width, platform.height, "#00FF00");
     });
         
-    rectRelative(player.x, player.y, player.width, player.height, "#FF0000");
-
-    if(player.airborne) {
-        player.vy -= GRAVITY;
-    }
+    rectRelative(player.x, player.y, player.width, player.height, player.color);
+    console.log(Date.now() - start, player.x - 100);
 }
 
 function doInput() {
+    //player.vx = 0;
+    player.vy = 0;
+    
     if (keys[38]) {
-        player.vy += GRAVITY * 1.2;
-        player.airborne = true;
+        player.vy = 1;
     }
 
     if (keys[37]) {
-        player.vx = -5;
-    } else {
-        if (!keys[39]) {
-            player.vx = 0;
-        }
+        player.vx = -1;
     }
 
     if (keys[39]) {
-        player.vx = 5;
-    } else {
-        if (!keys[37]) {
-            player.vx = 0;
-        }
+        player.vx = 1;
+    }
+
+    if(keys[40]) {
+        player.vy = -1;
     }
 }
 
@@ -110,49 +107,29 @@ function movePlayer() {
     var collidedPlatform = null;
     var cPlayer = Object.assign({}, player);
     
-    var maxItr = Math.max(Math.abs(player.vx), Math.abs(player.vy));
+    cPlayer.x += cPlayer.vx;
+    cPlayer.y -= cPlayer.vy;
 
     for (var i = 0; i < platforms.length && !collidedPlatform; i++) {
         var platform = platforms[i];
         
-        // Do a collision scan
-        let itr = 0;
-        while (!(cPlayer.x == player.x + player.vx && cPlayer.y == player.y + player.vy) && itr <= maxItr) {
-            cPlayer.x += Math.abs(cPlayer.vx)/cPlayer.vx;
-            cPlayer.y += -Math.abs(cPlayer.vy)/cPlayer.vy;
-
-            if (collides(cPlayer, platform)) {
-                collidedPlatform = platform;
-                break;
-            }
-
-            itr++;
+        // Do a collision check
+        if (collides(cPlayer, platform)) {
+            collidedPlatform = platform;
+            break;
         }
     }
     
-    // Snap to the platform and update their position
+    
     if (collidedPlatform) {
-        
-        let dy = collidedPlatform.y + collidedPlatform.height;
-
-        // Check if the player isn't "standing" on the platform, upward
-        if (cPlayer.vy > 0 && Math.abs(cPlayer.y - dy) > 1) {
-            cPlayer.y = dy;
-        }
-
-        // Same check except downward
-        dy = collidedPlatform.y - player.height;
-        if (cPlayer.vy < 0 && Math.abs(cPlayer.y - dy) > 1) {
-            cPlayer.y = dy;
-        }
-
-        cPlayer.airborne = false;
+    // Snap to the platform and update their position
         cPlayer.vy = 0;
+        player.color = "#FF0000";
     } else {
-        cPlayer.airborne = true;
+        player.color = "#0000FF";
+        player = cPlayer; // do the assignment
     }
-    
-    player = cPlayer;
+
     camera.x = player.x - camera.width / 2;
 }
 
