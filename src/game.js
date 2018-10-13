@@ -187,14 +187,13 @@ function moveEntity(ent) {
                 return true;
             }
         }
-    } else {
-        // No collision along ray, move the player
-        ent.x += ent.vx;
-        ent.y -= ent.vy;
-        return true;
     }
 
-    return false;
+    // No collision along ray, move the player
+    ent.x += ent.vx;
+    ent.y -= ent.vy;
+    
+    return true;
 }
 
 if (canvas) {
