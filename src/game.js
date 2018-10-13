@@ -14,6 +14,12 @@ function makePlatform(x, y, w, h) {
     return { x: x, y: y, width: w, height: h };
 }
 
+var PARAMS = {
+    COLLISION: {
+        epsilon: 1  // ray cast collision epsilon (larger values more performant but less accurate)
+    }
+}
+
 var GRAVITY = 2; // 9.8m/s^2
 
 var platforms = [
@@ -90,7 +96,7 @@ function doInput() {
     }
 
     if(keys[40]) {
-        player.vy = -1025;
+        player.vy = -25;
     }
 }
 
@@ -136,11 +142,9 @@ function moveEntity(ent) {
 
     var mint = -1;
 
-    var segSize = 0.01;
-
     var collidedPlatform = null;
     
-    for(var t = 0; t < magnitude; t += segSize) {
+    for(var t = 0; t < magnitude; t += PARAMS.COLLISION.epsilon) {
         for (var i = 0; i < platforms.length; i++) {
             var platform = platforms[i];
 
@@ -154,10 +158,10 @@ function moveEntity(ent) {
         }
     }
     
-    // Collision along ray, move to smallest collision point
+    // Check for collisions along ray, move to smallest collision point
     if(collidedPlatform) {
         // Find the first t where a collion doesn't occur with the collided platform (entity becomes stuck inside the object otherwise)
-        for(var t = mint; t >= -segSize; t -= segSize) {
+        for(var t = mint; t >= -PARAMS.COLLISION.epsilon; t -= PARAMS.COLLISION.epsilon) {
             if(!collidesParam(sx + nx * t, sy - ny * t, ent.width, ent.height, collidedPlatform)) {
                 ent.x += nx * t;
                 ent.y -= ny * t;
