@@ -40,12 +40,13 @@ var player = {
     vx : 0,
     vy : 0,
     color: "#FF0000",
+    inAir: true
 }
 
-function inAir() {
+function inAir(ent) {
     for (var i = 0; i < platforms.length; i++) {
         var platform = platforms[i];
-        if (collidesParam(player.x, player.y + 1, player.width, player.height, platform)) {
+        if (collidesParam(ent.x, ent.y + 1, ent.width, ent.height, platform)) {
             return false;
         }
     }
@@ -79,7 +80,8 @@ function loop() {
     
     doInput();
     
-    if (moveEntity(player)) {
+    if (moveEntity(player)) { 
+        player.inAir = inAir(player);
         updateCamera();
     }
 
@@ -90,19 +92,19 @@ function loop() {
     rectRelative(player.x, player.y, player.width, player.height, player.color);
 
     // Can't decrement y-velocity constantly because it causes magnitude of <vx, vy> to blow up
-    if (inAir()) {
+    if (player.inAir) {
         player.vy -= PARAMS.PHYSICS.GRAVITY;
     } else {
         player.vy = 0;
     }
 
-    player.color = inAir() ? "#FFFF00" : "#FF0000";
+    player.color = player.inAir ? "#FFFF00" : "#FF0000";
 }
 
 function doInput() {
     player.vx = 0;
     
-    if (keys[38] && !inAir()) {
+    if (keys[38] && !player.inAir) {
         player.vy = 30;
     }
 
