@@ -78,19 +78,19 @@ function doInput() {
     player.vy = 0;
     
     if (keys[38]) {
-        player.vy = 5;
+        player.vy = 25;
     }
 
     if (keys[37]) {
-        player.vx = -5;
+        player.vx = -25;
     }
 
     if (keys[39]) {
-        player.vx = 5;
+        player.vx = 25;
     }
 
     if(keys[40]) {
-        player.vy = -5;
+        player.vy = -1025;
     }
 }
 
@@ -146,11 +146,10 @@ function moveEntity(ent) {
 
             // Do a collision check
             if (collidesParam(sx + nx * t, sy - ny * t, ent.width, ent.height, platform)) {
-                collidedPlatform = platform;
-                if(mint < 0) {
+                if(mint < 0 || t < mint) {
                     mint = t;
+                    collidedPlatform = platform;
                 }
-                mint = Math.min(t, mint);
             }
         }
     }
