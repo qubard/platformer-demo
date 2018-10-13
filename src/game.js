@@ -27,7 +27,7 @@ var player = {
     y: platforms[1].y - 50,
     width: 35,
     height: 35,
-    vx : 1,
+    vx : 0,
     vy : 0,
     color: "#FF0000"
 }
@@ -60,34 +60,37 @@ function loop() {
     rect(0, 0, camera.width, camera.height, "#FFFFFF");
     
     doInput();
-    movePlayer();
+    
+    // use 100 segments to raycast moving the player
+    if(moveEntity(player)) {
+        updateCamera();
+    }
 
     platforms.forEach(platform => {
         rectRelative(platform.x, platform.y, platform.width, platform.height, "#00FF00");
     });
         
     rectRelative(player.x, player.y, player.width, player.height, player.color);
-    console.log(Date.now() - start, player.x - 100);
 }
 
 function doInput() {
-    //player.vx = 0;
+    player.vx = 0;
     player.vy = 0;
     
     if (keys[38]) {
-        player.vy = 1;
+        player.vy = 5;
     }
 
     if (keys[37]) {
-        player.vx = -1;
+        player.vx = -5;
     }
 
     if (keys[39]) {
-        player.vx = 1;
+        player.vx = 5;
     }
 
     if(keys[40]) {
-        player.vy = -1;
+        player.vy = -5;
     }
 }
 
@@ -103,34 +106,72 @@ function collides(a, b) {
     return true;
 }
 
-function movePlayer() {
-    var collidedPlatform = null;
-    var cPlayer = Object.assign({}, player);
+function collidesParam(x, y, width, height, b) {
+    if (x > b.x + b.width || b.x > x + width) {
+        return false;
+    }
     
-    cPlayer.x += cPlayer.vx;
-    cPlayer.y -= cPlayer.vy;
+    if (y > b.y + b.height || b.y > y + height) {
+        return false;
+    }
 
-    for (var i = 0; i < platforms.length && !collidedPlatform; i++) {
-        var platform = platforms[i];
-        
-        // Do a collision check
-        if (collides(cPlayer, platform)) {
-            collidedPlatform = platform;
-            break;
+    return true;
+}
+
+function updateCamera() {
+    camera.x = player.x - camera.width / 2;
+}
+
+function moveEntity(ent) {
+    var magnitude = Math.sqrt(ent.vx * ent.vx + ent.vy * ent.vy);
+
+    if(magnitude == 0) {
+        return false;
+    }
+
+    var sx = ent.x;
+    var sy = ent.y;
+    var nx = ent.vx / magnitude;
+    var ny = ent.vy / magnitude;
+
+    var mint = -1;
+
+    var segSize = 0.01;
+
+    var collidedPlatform = null;
+    
+    for(var t = 0; t < magnitude; t += segSize) {
+        for (var i = 0; i < platforms.length; i++) {
+            var platform = platforms[i];
+
+            // Do a collision check
+            if (collidesParam(sx + nx * t, sy - ny * t, ent.width, ent.height, platform)) {
+                collidedPlatform = platform;
+                if(mint < 0) {
+                    mint = t;
+                }
+                mint = Math.min(t, mint);
+            }
         }
     }
     
-    
-    if (collidedPlatform) {
-    // Snap to the platform and update their position
-        cPlayer.vy = 0;
-        player.color = "#FF0000";
+    // Collision along ray, move to smallest collision point
+    if(collidedPlatform) {
+        // Find the first t where a collion doesn't occur with the collided platform (entity becomes stuck inside the object otherwise)
+        for(var t = mint; t >= -segSize; t -= segSize) {
+            if(!collidesParam(sx + nx * t, sy - ny * t, ent.width, ent.height, collidedPlatform)) {
+                ent.x += nx * t;
+                ent.y -= ny * t;
+                break;
+            }
+        }
     } else {
-        player.color = "#0000FF";
-        player = cPlayer; // do the assignment
+        // No collision along ray, move the player
+        ent.x += ent.vx;
+        ent.y -= ent.vy;
     }
 
-    camera.x = player.x - camera.width / 2;
+    return true;
 }
 
 if (canvas) {
