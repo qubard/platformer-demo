@@ -16,11 +16,15 @@ function makePlatform(x, y, w, h) {
 
 var PARAMS = {
     COLLISION: {
-        epsilon: 1  // ray cast collision epsilon (larger values more performant but less accurate)
-    }
+        epsilon: 0.01  // ray cast collision epsilon (larger values more performant but less accurate)
+    },
+    PHYSICS: {
+        GRAVITY: 5
+    },
+    TICKRATE: 25,
+    WIDTH: 900,
+    HEIGHT: 800
 }
-
-var GRAVITY = 2; // 9.8m/s^2
 
 var platforms = [
     makePlatform(100, 100, 500, 50),
@@ -35,14 +39,15 @@ var player = {
     height: 35,
     vx : 0,
     vy : 0,
-    color: "#FF0000"
+    color: "#FF0000",
+    inAir: true
 }
 
 var camera = {
     x: 0,
     y: 0,
-    width: 900,
-    height: 800
+    width: PARAMS.WIDTH,
+    height: PARAMS.HEIGHT
 }
 
 // Render a rect relative to the camera
@@ -60,14 +65,11 @@ function rect(x, y, width, height, col) {
     ctx.restore();
 }
 
-var start = Date.now();
-
 function loop() {
     rect(0, 0, camera.width, camera.height, "#FFFFFF");
     
     doInput();
     
-    // use 100 segments to raycast moving the player
     if(moveEntity(player)) {
         updateCamera();
     }
@@ -77,26 +79,29 @@ function loop() {
     });
         
     rectRelative(player.x, player.y, player.width, player.height, player.color);
+
+    // Can't decrement y-velocity constantly because it causes magnitude of <vx, vy> to blow up
+    if(player.vy >= 0) {
+        player.vy -= PARAMS.PHYSICS.GRAVITY;
+    }
+
+    player.color = player.inAir ? "#FFFF00" : "#FF0000";
 }
 
 function doInput() {
     player.vx = 0;
-    player.vy = 0;
     
-    if (keys[38]) {
-        player.vy = 25;
+    if (keys[38] && !player.inAir) {
+        player.vy = 30;
+        player.inAir = true;
     }
 
     if (keys[37]) {
-        player.vx = -25;
+        player.vx -= 2;
     }
 
     if (keys[39]) {
-        player.vx = 25;
-    }
-
-    if(keys[40]) {
-        player.vy = -25;
+        player.vx += 2;
     }
 }
 
@@ -144,15 +149,15 @@ function moveEntity(ent) {
 
     var collidedPlatform = null;
     
-    for(var t = 0; t < magnitude; t += PARAMS.COLLISION.epsilon) {
+    for(var t = PARAMS.COLLISION.epsilon; t < magnitude; t += PARAMS.COLLISION.epsilon) {
         for (var i = 0; i < platforms.length; i++) {
             var platform = platforms[i];
 
             // Do a collision check
             if (collidesParam(sx + nx * t, sy - ny * t, ent.width, ent.height, platform)) {
                 if(mint < 0 || t < mint) {
-                    mint = t;
                     collidedPlatform = platform;
+                    mint = t;
                 }
             }
         }
@@ -162,9 +167,17 @@ function moveEntity(ent) {
     if(collidedPlatform) {
         // Find the first t where a collion doesn't occur with the collided platform (entity becomes stuck inside the object otherwise)
         for(var t = mint; t >= -PARAMS.COLLISION.epsilon; t -= PARAMS.COLLISION.epsilon) {
-            if(!collidesParam(sx + nx * t, sy - ny * t, ent.width, ent.height, collidedPlatform)) {
+            let dy = - ny * t;
+            if(!collidesParam(sx + nx * t, sy + dy, ent.width, ent.height, collidedPlatform)) {
+                // If the we're moving down, we know the player has hit a platform
+                if(ent.vy < 0) {
+                    if(ent.inAir) {
+                        ent.vy = 0;
+                    }
+                    ent.inAir = false;
+                }
                 ent.x += nx * t;
-                ent.y -= ny * t;
+                ent.y += dy;
                 break;
             }
         }
@@ -180,5 +193,5 @@ function moveEntity(ent) {
 if (canvas) {
     var ctx = canvas.getContext("2d");
 
-    window.setInterval(loop, 25);
+    window.setInterval(loop, PARAMS.TICKRATE);
 }
