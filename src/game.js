@@ -29,7 +29,8 @@ var PARAMS = {
 var platforms = [
     makePlatform(100, 100, 500, 50),
     makePlatform(100, 600, 800, 50),
-    makePlatform(150, 400, 100, 50)
+    makePlatform(170, 400, 100, 50),
+    makePlatform(150, 350, 50, 200)
 ]
 
 var player = {
@@ -178,15 +179,22 @@ function moveEntity(ent) {
     // Check for collisions along ray, move to smallest collision point
     if (collidedPlatform) {
         // Find the first t where a collion doesn't occur with the collided platform (entity becomes stuck inside the object otherwise)
-        for (var t = mint; t >= -PARAMS.COLLISION.epsilon; t -= PARAMS.COLLISION.epsilon) {
+        for (var t = mint - PARAMS.COLLISION.epsilon; t >= 0; t -= PARAMS.COLLISION.epsilon) {
             let dy = - ny * t;
             if (!collidesParam(sx + nx * t, sy + dy, ent.width, ent.height, collidedPlatform)) {
-                // If the we're moving down, we know the player has hit a platform
-                ent.x += nx * t;
+                if (Math.abs(ent.vx) > 1) {
+                    ent.x += nx * t;
+                }
+
                 ent.y += dy;
+
+                if (ent.vy > 0) {
+                    ent.vy = 0;
+                }
                 return true;
             }
         }
+        return false;
     }
 
     // No collision along ray, move the player
