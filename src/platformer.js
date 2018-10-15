@@ -113,11 +113,11 @@ function doInput() {
     }
 
     if (keys[37]) {
-        player.vx -= 2;
+        player.vx -= 5;
     }
 
     if (keys[39]) {
-        player.vx += 2;
+        player.vx += 5;
     }
 }
 
@@ -211,13 +211,14 @@ function moveEntity(ent) {
 
                 let a = collidesParam(sx + dx + 1, sy + dy, ent.width, ent.height, collidedPlatform);
                 let b = collidesParam(sx + dx - 1, sy + dy, ent.width, ent.height, collidedPlatform);
-
+                
                 // Choose the dominant direction to slide along the object in the y direction
                 if(Math.abs(nx) > 0 && (a || b)) {
                     // Snap the entity's x-axis to the object where there is no repeated collision possible
                     let newx = a ? collidedPlatform.x - player.width - 1: collidedPlatform.x + collidedPlatform.width + 1;
 
-                    // Need to scan up to magnitude again so we don't clip into it still (hilariously bad code)                   
+                    // Need to scan up to magnitude again so we don't clip into it still (hilariously bad code)   
+                    magnitude = Math.abs(ent.vy);                
                     let t = 0;
                     let found = false;
                     for(t = 0; t <= magnitude && !found; t += PARAMS.COLLISION.epsilon) {
