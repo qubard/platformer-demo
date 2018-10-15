@@ -29,9 +29,11 @@ var PARAMS = {
 var platforms = [
     makePlatform(100, 100, 500, 50),
     makePlatform(100, 650, 800, 50),
-    makePlatform(170, 400, 100, 50),
+    makePlatform(170, 400, 150, 50),
     makePlatform(150, 350, 50, 150),
-    makePlatform(350, 350, 50, 150)
+    makePlatform(350, 350, 50, 150),
+    makePlatform(50, 500, 50, 50),
+    makePlatform(450, 400, 150, 50),
 ]
 
 var player = {
@@ -219,7 +221,7 @@ function moveEntity(ent) {
                     let t = 0;
                     let found = false;
                     for(t = 0; t <= magnitude && !found; t += PARAMS.COLLISION.epsilon) {
-                        for (var i = 0; i < platforms.length && !found; i++) {
+                        for (var i = 0; i < platforms.length; i++) {
                             var platform = platforms[i];
                             if(collidesParam(newx, sy - Math.sign(ny) * t, ent.width, ent.height, platform)) {
                                 found = true;
