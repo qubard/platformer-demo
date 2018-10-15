@@ -1,6 +1,6 @@
 # platform-demo
 
-A simple pixel-perfect javascript platformer demo for showing a basic collision-checking approach with terrain.
+A simple pixel-perfect javascript platformer demo for showing a basic collision-checking approach with terrain. You can play it [here](https://upload.blueberrypancake.xyz/private/platformer-demo).
 
 # Collisions
 
