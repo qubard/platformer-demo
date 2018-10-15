@@ -16,7 +16,7 @@ function makePlatform(x, y, w, h) {
 
 var PARAMS = {
     COLLISION: {
-        epsilon: 1  // ray cast collision epsilon (larger values more performant but less accurate)
+        epsilon: 0.01  // ray cast collision epsilon (larger values more performant but less accurate)
     },
     PHYSICS: {
         GRAVITY: 2
@@ -30,7 +30,8 @@ var platforms = [
     makePlatform(100, 100, 500, 50),
     makePlatform(100, 650, 800, 50),
     makePlatform(170, 400, 100, 50),
-    makePlatform(150, 350, 50, 150)
+    makePlatform(150, 350, 50, 150),
+    makePlatform(350, 350, 50, 150)
 ]
 
 var player = {
@@ -83,10 +84,9 @@ function loop() {
     
     if (moveEntity(player)) { 
         updateCamera();
+        player.inAir = inAir(player);
     }
 
-    player.inAir = inAir(player);
-    
     platforms.forEach(platform => {
         rectRelative(platform.x, platform.y, platform.width, platform.height, "#00FF00");
     });
@@ -149,6 +149,8 @@ function updateCamera() {
 
 var k =0;
 
+// Params: Entity to be moved
+// Returns true if the entity was able to be moved
 function moveEntity(ent) {
     var magnitude = Math.sqrt(ent.vx * ent.vx + ent.vy * ent.vy);
 
@@ -164,14 +166,21 @@ function moveEntity(ent) {
     var mint = -1;
 
     var collidedPlatform = null;
+
+    var found = false;
     
-    for (var t = PARAMS.COLLISION.epsilon; t <= magnitude + PARAMS.COLLISION.epsilon; t += PARAMS.COLLISION.epsilon) {
+    for (var t = PARAMS.COLLISION.epsilon; t <= magnitude + PARAMS.COLLISION.epsilon && !found; t += PARAMS.COLLISION.epsilon) {
         for (var i = 0; i < platforms.length; i++) {
             var platform = platforms[i];
 
             // Do a collision check
             if (collidesParam(sx + nx * t, sy - ny * t, ent.width, ent.height, platform)) {
-                if (mint < 0 || t < mint) {
+                if(mint >= 0) {
+                    found = true;
+                    break;
+                }
+
+                if (mint < 0) {
                     collidedPlatform = platform;
                     mint = t;
                 }
@@ -187,18 +196,45 @@ function moveEntity(ent) {
     if (collidedPlatform) {
         // Find the first t where a collion doesn't occur with the collided platform (entity becomes stuck inside the object otherwise)
         for (var t = mint; t >= -PARAMS.COLLISION.epsilon; t -= PARAMS.COLLISION.epsilon) {
-            let inX = Math.abs(nx) >= Math.abs(ny);
-            let dx = inX ? Math.sign(nx) * t : 0;
-            let dy = inX ? 0 : - Math.sign(ny) * t;
-            // If they collided with a platform choose the larger direction to slide in
+            let dx = nx * t;
+            let dy = - ny * t;
+
             if (!collidesParam(sx + dx, sy + dy, ent.width, ent.height, collidedPlatform)) {
-                ent.x += dx
-                ent.y += dy;
-                // Player velocity should be reset y-ward if they're moving in the y-direction and they collide with something above them
+                // Player velocity should be reset in y if they're moving in the y-direction and they collide with something above them
                 // The only way to check if we are colliding from underneath something is to try to go upward from a non-collided position
-                if (ent.vy > 0 && collidesParam(sx + dx, sy + dy - 1, ent.width, ent.height, collidedPlatform)) {
+                // Negative is up
+                if (ent.vy > 0 && collidesParam(sx + dx, sy + dy - PARAMS.COLLISION.epsilon, ent.width, ent.height, collidedPlatform)) {
                     ent.vy = 0;
                 }
+
+                let a = collidesParam(sx + dx + 1, sy + dy, ent.width, ent.height, collidedPlatform);
+                let b = collidesParam(sx + dx - 1, sy + dy, ent.width, ent.height, collidedPlatform);
+
+                // Choose the dominant direction to slide along the object in the y direction
+                if(Math.abs(nx) > 0 && (a || b)) {
+                    // Snap the entity's x-axis to the object where there is no repeated collision possible
+                    let newx = a ? collidedPlatform.x - player.width - 1: collidedPlatform.x + collidedPlatform.width + 1;
+
+                    // Need to scan up to magnitude again so we don't clip into it still (hilariously bad code)                   
+                    let t = 0;
+                    let found = false;
+                    for(t = 0; t <= magnitude && !found; t += PARAMS.COLLISION.epsilon) {
+                        for (var i = 0; i < platforms.length && !found; i++) {
+                            var platform = platforms[i];
+                            if(collidesParam(newx, sy - Math.sign(ny) * t, ent.width, ent.height, platform)) {
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    if(!found) t = magnitude;
+                    ent.y += - Math.sign(ny) * (t - PARAMS.COLLISION.epsilon);
+                    ent.x = newx;
+                } else {
+                    ent.x += dx;
+                    ent.y += dy;
+                }
+
                 return true;
             }
         }
