@@ -149,8 +149,6 @@ function updateCamera() {
     camera.x = player.x - camera.width / 2;
 }
 
-var k =0;
-
 // Params: Entity to be moved
 // Returns true if the entity was able to be moved
 function moveEntity(ent) {
@@ -201,10 +199,10 @@ function moveEntity(ent) {
             let dx = nx * t;
             let dy = - ny * t;
 
+            // Entity does not collide with the platform anymore
             if (!collidesParam(sx + dx, sy + dy, ent.width, ent.height, collidedPlatform)) {
-                // Player velocity should be reset in y if they're moving in the y-direction and they collide with something above them
-                // The only way to check if we are colliding from underneath something is to try to go upward from a non-collided position
-                // Negative is up
+                // Entity velocity should be reset in y if they're moving in the y-direction and they collide with something above them
+                // The only way to check if we are colliding from underneath something is to try to go upward from a non-collided position (negative is up)
                 if (ent.vy > 0 && collidesParam(sx + dx, sy + dy - PARAMS.COLLISION.epsilon, ent.width, ent.height, collidedPlatform)) {
                     ent.vy = 0;
                 }
@@ -215,16 +213,18 @@ function moveEntity(ent) {
                 // Choose the dominant direction to slide along the object in the y direction
                 if(Math.abs(nx) > 0 && (a || b)) {
                     // Snap the entity's x-axis to the object where there is no repeated collision possible
-                    let newx = a ? collidedPlatform.x - player.width - 1: collidedPlatform.x + collidedPlatform.width + 1;
+                    let snapX = a ? collidedPlatform.x - ent.width - 1: collidedPlatform.x + collidedPlatform.width + 1;
 
-                    // Need to scan up to magnitude again so we don't clip into it still (hilariously bad code)   
-                    magnitude = Math.abs(ent.vy);                
+                    // Need to scan up to magnitude again so we don't clip into it still (refactoring here?)   
+                    magnitude = Math.abs(ent.vy);      
+
                     let t = 0;
                     let found = false;
-                    for(t = 0; t <= magnitude && !found; t += PARAMS.COLLISION.epsilon) {
+
+                    for(t = PARAMS.COLLISION.epsilon; t <= magnitude && !found; t += PARAMS.COLLISION.epsilon) {
                         for (var i = 0; i < platforms.length; i++) {
                             var platform = platforms[i];
-                            if(collidesParam(newx, sy - Math.sign(ny) * t, ent.width, ent.height, platform)) {
+                            if(collidesParam(snapX, sy - Math.sign(ny) * t, ent.width, ent.height, platform)) {
                                 found = true;
                                 break;
                             }
@@ -232,7 +232,7 @@ function moveEntity(ent) {
                     }
                     if(!found) t = magnitude;
                     ent.y += - Math.sign(ny) * (t - PARAMS.COLLISION.epsilon);
-                    ent.x = newx;
+                    ent.x = snapX;
                 } else {
                     ent.x += dx;
                     ent.y += dy;
