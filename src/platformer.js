@@ -16,7 +16,7 @@ function makePlatform(x, y, w, h) {
 
 var PARAMS = {
     COLLISION: {
-        epsilon: 0.01  // ray cast collision epsilon (larger values more performant but less accurate)
+        epsilon: 0.1  // Ray cast collision epsilon (epsilon = 10^i s.t i <= 0)
     },
     PHYSICS: {
         GRAVITY: 2
@@ -178,7 +178,7 @@ function moveEntity(ent) {
             // Do a collision check
             if (collidesParam(sx + nx * t, sy - ny * t, ent.width, ent.height, platform)) {
                 if(mint >= 0) {
-                    found = true;
+                    found = true; // Found a collision, exit loop
                     break;
                 }
 
@@ -209,9 +209,9 @@ function moveEntity(ent) {
                     ent.vy = 0;
                 }
 
-                let a = collidesParam(sx + dx + 1, sy + dy, ent.width, ent.height, collidedPlatform);
-                let b = collidesParam(sx + dx - 1, sy + dy, ent.width, ent.height, collidedPlatform);
-                
+                let a = collidesParam(sx + dx + PARAMS.COLLISION.epsilon, sy + dy, ent.width, ent.height, collidedPlatform);
+                let b = collidesParam(sx + dx - PARAMS.COLLISION.epsilon, sy + dy, ent.width, ent.height, collidedPlatform);
+
                 // Choose the dominant direction to slide along the object in the y direction
                 if(Math.abs(nx) > 0 && (a || b)) {
                     // Snap the entity's x-axis to the object where there is no repeated collision possible
