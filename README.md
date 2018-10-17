@@ -11,10 +11,15 @@ When an entity moves from a position A to position B we check for collisions usi
 To run the multiplayer version run
 
 ```
+npm install
 node.js server.js
 ```
 
 and navigate to `localhost:3000` in your web browser.
+
+# Screenshot
+
+<img width=593px src="https://raw.githubusercontent.com/qubard/platformer-demo/multiplayer/screenshot-multiplayer.png" />
 
 # Notes
 
