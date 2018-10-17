@@ -95,6 +95,7 @@ function loop() {
 
     for (uuid in players) {
         let player = players[uuid];
+        player.color = player.inAir ? "#FFFF00" : "#FF0000";
         rectRelative(player.x, player.y, player.width, player.height, player.color);
     }
 
@@ -195,7 +196,6 @@ function moveEntity(ent) {
         // The only way to check if we are colliding from underneath something is to try to go upward from a non-collided position (negative is up)
         if (ent.vy > 0 && collidesParam(scanResult.destX, scanResult.destY - PARAMS.COLLISION.epsilon, ent.width, ent.height, collidedPlatform)) {
             ent.vy = 0;
-            emitMoveEvent();
         }
 
         let collidesRight = collidesParam(scanResult.destX + 1, scanResult.destY, ent.width, ent.height, collidedPlatform);
