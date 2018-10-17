@@ -157,18 +157,18 @@ function updateCamera() {
 // Rayscan for a collision along their velocity vector
 function rayscan(ent, fx, fy, magnitude) {
     for (var t = PARAMS.COLLISION.epsilon; t <= magnitude; t += PARAMS.COLLISION.epsilon) {
-        let x = fx(ent, t + PARAMS.COLLISION.epsilon);
-        let y = fy(ent, t + PARAMS.COLLISION.epsilon);
+        let x = fx(t + PARAMS.COLLISION.epsilon);
+        let y = fy(t + PARAMS.COLLISION.epsilon);
         
         for (var i = 0; i < platforms.length; i++) {
             var platform = platforms[i];
             // Do a collision check
             if (collidesParam(x, y, ent.width, ent.height, platform)) {
-                return { collides: true, platform: platform, destX: fx(ent, t), destY: fy(ent, t) };
+                return { collides: true, platform: platform, destX: fx(t), destY: fy(t) };
             }
         }
     }
-    return { collides: false, destX: fx(ent, magnitude), destY: fy(ent, magnitude) };
+    return { collides: false, destX: fx(magnitude), destY: fy(magnitude) };
 }
 
 function canMoveEntity(ent) {
@@ -187,8 +187,8 @@ function getSideCollision(scanResult, ent, ny) {
         
         // Scan only upward from the snapped position and find the first (x,y) with no collision
         return rayscan(ent,
-            (ent, t) => { return snapX }, 
-            (ent, t) => { return ent.y - Math.sign(ny) * t }, 
+            (t) => { return snapX }, 
+            (t) => { return ent.y - Math.sign(ny) * t }, 
             Math.abs(ent.vy));
     }
     return scanResult;
@@ -230,8 +230,8 @@ function moveEntity(ent) {
 
     // Rayscan for a collision along their velocity vector
     var scanResult = rayscan(ent,
-        (ent, t) => { return ent.x + nx * t }, 
-        (ent, t) => { return ent.y - ny * t }, 
+        (t) => { return ent.x + nx * t }, 
+        (t) => { return ent.y - ny * t }, 
         magnitude);
 
     moveEntRayscan(scanResult, ent, ny);
