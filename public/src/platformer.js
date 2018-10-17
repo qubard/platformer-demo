@@ -36,16 +36,13 @@ var platforms = [
     makePlatform(450, 400, 150, 50),
 ]
 
-var player = {
-    x: 100,
-    y: platforms[1].y - 50,
-    width: 35,
-    height: 35,
-    vx : 0,
-    vy : 0,
-    color: "#FF0000",
-    inAir: true
+var player = makePlayer();
+
+function emitMoveEvent() {
+    socket.emit('player.move', player);
 }
+
+emitMoveEvent();
 
 function inAir(ent) {
     for (var i = 0; i < platforms.length; i++) {
@@ -84,9 +81,10 @@ function loop() {
     
     doInput();
     
-    if (moveEntity(player)) { 
+    if (moveEntity(player)) {
         updateCamera();
         player.inAir = inAir(player);
+        emitMoveEvent();
     }
 
     platforms.forEach(platform => {
@@ -94,6 +92,11 @@ function loop() {
     });
         
     rectRelative(player.x, player.y, player.width, player.height, player.color);
+
+    for (uuid in players) {
+        let player = players[uuid];
+        rectRelative(player.x, player.y, player.width, player.height, player.color);
+    }
 
     // Can't decrement y-velocity constantly because it causes magnitude of <vx, vy> to blow up
     if (player.inAir) {
@@ -192,6 +195,7 @@ function moveEntity(ent) {
         // The only way to check if we are colliding from underneath something is to try to go upward from a non-collided position (negative is up)
         if (ent.vy > 0 && collidesParam(scanResult.destX, scanResult.destY - PARAMS.COLLISION.epsilon, ent.width, ent.height, collidedPlatform)) {
             ent.vy = 0;
+            emitMoveEvent();
         }
 
         let collidesRight = collidesParam(scanResult.destX + 1, scanResult.destY, ent.width, ent.height, collidedPlatform);

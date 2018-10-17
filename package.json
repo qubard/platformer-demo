@@ -1,0 +1,28 @@
+{
+  "name": "platformer-demo",
+  "version": "1.0.0",
+  "description": "A simple pixel-perfect javascript platformer demo for showing a basic collision-checking approach with terrain. You can play it [here](https://upload.blueberrypancake.xyz/private/platformer-demo).",
+  "main": "index.js",
+  "dependencies": {
+    "eslint": "^5.6.1",
+    "eslint-config-google": "^0.10.0",
+    "express": "^4.16.4",
+    "socket.io": "^2.1.1",
+    "socket.io-client": "^2.1.1",
+    "uuid": "^3.3.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qubard/platformer-demo.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/qubard/platformer-demo/issues"
+  },
+  "homepage": "https://github.com/qubard/platformer-demo#readme"
+}
