@@ -16,7 +16,7 @@ function makePlatform(x, y, w, h) {
 
 var PARAMS = {
     COLLISION: {
-        epsilon: 0.1  // Ray cast collision epsilon (epsilon = 10^i s.t i <= 0)
+        epsilon: 0.1  // small value for ray scanning set to 10^i s.t i <= 0
     },
     PHYSICS: {
         GRAVITY: 2
@@ -66,7 +66,7 @@ var camera = {
 
 // Render a rect relative to the camera
 function rectRelative(x, y, width, height, col) {
-    rect(Math.floor(x - camera.x), Math.floor(y - camera.y), width, height, col); // Floor so that there's no weird aliasing
+    rect(Math.round(x - camera.x), Math.round(y - camera.y), width, height, col); // Floor so that there's no weird aliasing
 }
 
 function rect(x, y, width, height, col) {
@@ -149,8 +149,25 @@ function updateCamera() {
     camera.x = player.x - camera.width / 2;
 }
 
+// Rayscan for a collision along their velocity vector
+function rayscan(ent, fx, fy, magnitude) {
+    for (var t = PARAMS.COLLISION.epsilon; t <= magnitude; t += PARAMS.COLLISION.epsilon) {
+        let x = fx(ent, t + PARAMS.COLLISION.epsilon);
+        let y = fy(ent, t + PARAMS.COLLISION.epsilon);
+        
+        for (var i = 0; i < platforms.length; i++) {
+            var platform = platforms[i];
+            // Do a collision check
+            if (collidesParam(x, y, ent.width, ent.height, platform)) {
+                return { collides: true, platform: platform, destX: fx(ent, t), destY: fy(ent, t) };
+            }
+        }
+    }
+    return { collides: false, destX: fx(ent, magnitude), destY: fy(ent, magnitude) };
+}
+
 // Params: Entity to be moved
-// Returns true if the entity was able to be moved
+// Returns true if the entity was able to be moved and updates its position
 function moveEntity(ent) {
     var magnitude = Math.sqrt(ent.vx * ent.vx + ent.vy * ent.vy);
 
@@ -158,100 +175,53 @@ function moveEntity(ent) {
         return false;
     }
 
-    var sx = ent.x;
-    var sy = ent.y;
     var nx = ent.vx / magnitude;
     var ny = ent.vy / magnitude;
 
-    var mint = -1;
+    // Rayscan for a collision along their velocity vector
+    var scanResult = rayscan(ent, 
+        (ent, t) => { return ent.x + nx * t }, 
+        (ent, t) => { return ent.y - ny * t }, 
+        magnitude);
 
-    var collidedPlatform = null;
+    // If a collision exists, move to the previous point where no collision occurs
+    if (scanResult.collides) {
+        let collidedPlatform = scanResult.platform;
 
-    var found = false;
-    
-    for (var t = PARAMS.COLLISION.epsilon; t <= magnitude + PARAMS.COLLISION.epsilon && !found; t += PARAMS.COLLISION.epsilon) {
-        for (var i = 0; i < platforms.length; i++) {
-            var platform = platforms[i];
-
-            // Do a collision check
-            if (collidesParam(sx + nx * t, sy - ny * t, ent.width, ent.height, platform)) {
-                if(mint >= 0) {
-                    found = true; // Found a collision, exit loop
-                    break;
-                }
-
-                if (mint < 0) {
-                    collidedPlatform = platform;
-                    mint = t;
-                }
-            }
+        // Entity velocity should be reset in y if they're moving in the y-direction and they collide with something above them
+        // The only way to check if we are colliding from underneath something is to try to go upward from a non-collided position (negative is up)
+        if (ent.vy > 0 && collidesParam(scanResult.destX, scanResult.destY - PARAMS.COLLISION.epsilon, ent.width, ent.height, collidedPlatform)) {
+            ent.vy = 0;
         }
-    }
 
-    if(mint >= magnitude) {
-        mint = magnitude;
-    }
-    
-    // Check for collisions along ray, move to smallest collision point
-    if (collidedPlatform) {
-        // Find the first t where a collion doesn't occur with the collided platform (entity becomes stuck inside the object otherwise)
-        for (var t = mint; t >= -PARAMS.COLLISION.epsilon; t -= PARAMS.COLLISION.epsilon) {
-            let dx = nx * t;
-            let dy = - ny * t;
+        let collidesRight = collidesParam(scanResult.destX + 1, scanResult.destY, ent.width, ent.height, collidedPlatform);
+        let collidesLeft = collidesParam(scanResult.destX - 1, scanResult.destY, ent.width, ent.height, collidedPlatform);
 
-            // Entity does not collide with the platform anymore
-            if (!collidesParam(sx + dx, sy + dy, ent.width, ent.height, collidedPlatform)) {
-                // Entity velocity should be reset in y if they're moving in the y-direction and they collide with something above them
-                // The only way to check if we are colliding from underneath something is to try to go upward from a non-collided position (negative is up)
-                if (ent.vy > 0 && collidesParam(sx + dx, sy + dy - PARAMS.COLLISION.epsilon, ent.width, ent.height, collidedPlatform)) {
-                    ent.vy = 0;
-                }
-
-                let a = collidesParam(sx + dx + PARAMS.COLLISION.epsilon, sy + dy, ent.width, ent.height, collidedPlatform);
-                let b = collidesParam(sx + dx - PARAMS.COLLISION.epsilon, sy + dy, ent.width, ent.height, collidedPlatform);
-
-                // Choose the dominant direction to slide along the object in the y direction
-                if(Math.abs(nx) > 0 && (a || b)) {
-                    // Snap the entity's x-axis to the object where there is no repeated collision possible
-                    let snapX = a ? collidedPlatform.x - ent.width - 1: collidedPlatform.x + collidedPlatform.width + 1;
-
-                    // Need to scan up to magnitude again so we don't clip into it still (refactoring here?)   
-                    magnitude = Math.abs(ent.vy);      
-
-                    let t = 0;
-                    let found = false;
-
-                    for(t = PARAMS.COLLISION.epsilon; t <= magnitude && !found; t += PARAMS.COLLISION.epsilon) {
-                        for (var i = 0; i < platforms.length; i++) {
-                            var platform = platforms[i];
-                            if(collidesParam(snapX, sy - Math.sign(ny) * t, ent.width, ent.height, platform)) {
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-                    if(!found) t = magnitude;
-                    ent.y += - Math.sign(ny) * (t - PARAMS.COLLISION.epsilon);
-                    ent.x = snapX;
-                } else {
-                    ent.x += dx;
-                    ent.y += dy;
-                }
-
-                return true;
-            }
+        // Choose the dominant direction to slide along the object in the y direction
+        if ((collidesLeft || collidesRight) && !(collidesLeft && collidesRight)) {
+            // Snap the entity's x-axis to the object where there is no repeated collision possible
+            let snapX = collidesRight ? collidedPlatform.x - ent.width - 1: collidedPlatform.x + collidedPlatform.width + 1;
+            
+            // Scan only upward from the snapped position and find the first (x,y) with no collision
+            scanResult = rayscan(ent,
+                (ent, t) => { return snapX }, 
+                (ent, t) => { return ent.y - Math.sign(ny) * t }, 
+                Math.abs(ent.vy));
         }
-        return false;
+
+        ent.x = scanResult.destX;
+        ent.y = scanResult.destY;
+    } else {
+        ent.x += ent.vx;
+        ent.y -= ent.vy;
     }
 
-    ent.x += ent.vx;
-    ent.y -= ent.vy;
-    
     return true;
 }
 
 if (canvas) {
     var ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
 
     window.setInterval(loop, PARAMS.TICKRATE);
 }
