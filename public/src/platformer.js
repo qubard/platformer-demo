@@ -16,7 +16,7 @@ function makePlatform(x, y, w, h) {
 
 var PARAMS = {
     COLLISION: {
-        epsilon: 1  // small value for ray scanning set to 10^i s.t i <= 0
+        epsilon: 0.5
     },
     PHYSICS: {
         GRAVITY: 1
