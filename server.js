@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
 
     // Let the other players know about this player disconnecting, delete from our table
     socket.on('disconnect', () => {
-        console.log("A user disconnected.");
+        console.log(uuid, "user disconnected.");
         delete players[uuid];
         socket.broadcast.emit('player.disconnect', { uuid: uuid })
     });
