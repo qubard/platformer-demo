@@ -16,10 +16,10 @@ function makePlatform(x, y, w, h) {
 
 var PARAMS = {
     COLLISION: {
-        epsilon: 0.1  // small value for ray scanning set to 10^i s.t i <= 0
+        epsilon: 1  // small value for ray scanning set to 10^i s.t i <= 0
     },
     PHYSICS: {
-        GRAVITY: 2
+        GRAVITY: 1
     },
     TICKRATE: 25,
     WIDTH: 900,
@@ -81,7 +81,8 @@ function loop() {
     
     doInput();
     
-    if (moveEntity(player)) {
+    if (canMoveEntity(player)) {
+        moveEntity(player);
         updateCamera();
         player.inAir = inAir(player);
         emitMoveEvent();
@@ -170,57 +171,70 @@ function rayscan(ent, fx, fy, magnitude) {
     return { collides: false, destX: fx(ent, magnitude), destY: fy(ent, magnitude) };
 }
 
-// Params: Entity to be moved
-// Returns true if the entity was able to be moved and updates its position
+function canMoveEntity(ent) {
+    var magnitude = Math.sqrt(ent.vx * ent.vx + ent.vy * ent.vy);
+    return magnitude != 0;
+}
+
+function getSideCollision(scanResult, ent, ny) {
+    let collidesRight = collidesDir(scanResult, ent, 1, 0);
+    let collidesLeft = collidesDir(scanResult, ent, -1, 0);
+
+    // Choose the dominant direction to slide along the object in the y direction
+    if ((collidesLeft || collidesRight) && !(collidesLeft && collidesRight)) {
+        // Snap the entity's x-axis to the object where there is no repeated collision possible
+        let snapX = collidesRight ? scanResult.platform.x - ent.width - 1: scanResult.platform.x + scanResult.platform.width + 1;
+        
+        // Scan only upward from the snapped position and find the first (x,y) with no collision
+        return rayscan(ent,
+            (ent, t) => { return snapX }, 
+            (ent, t) => { return ent.y - Math.sign(ny) * t }, 
+            Math.abs(ent.vy));
+    }
+    return scanResult;
+}
+
+function collidesDir(scanResult, ent, dx, dy) {
+    return collidesParam(scanResult.destX + dx, scanResult.destY + dy, ent.width, ent.height, scanResult.platform)
+}
+
+function collidesAbove(scanResult, ent) {
+    return collidesDir(scanResult, ent, 0, - PARAMS.COLLISION.epsilon);
+}
+
+function handleMoveCollision(scanResult, ent, ny) {
+    if (ent.vy > 0 && collidesAbove(scanResult, ent)) {
+        ent.vy = 0;
+    }
+
+    scanResult = getSideCollision(scanResult, ent, ny);
+    ent.x = scanResult.destX;
+    ent.y = scanResult.destY;
+}
+
+function moveEntRayscan(scanResult, ent, ny) {
+    // If a collision exists, move to the previous point where no collision occurs
+    if (scanResult.collides) {
+        handleMoveCollision(scanResult, ent, ny);
+    } else {
+        ent.x += ent.vx;
+        ent.y -= ent.vy;
+    }
+}
+
 function moveEntity(ent) {
     var magnitude = Math.sqrt(ent.vx * ent.vx + ent.vy * ent.vy);
-
-    if (magnitude == 0) {
-        return false;
-    }
 
     var nx = ent.vx / magnitude;
     var ny = ent.vy / magnitude;
 
     // Rayscan for a collision along their velocity vector
-    var scanResult = rayscan(ent, 
+    var scanResult = rayscan(ent,
         (ent, t) => { return ent.x + nx * t }, 
         (ent, t) => { return ent.y - ny * t }, 
         magnitude);
 
-    // If a collision exists, move to the previous point where no collision occurs
-    if (scanResult.collides) {
-        let collidedPlatform = scanResult.platform;
-
-        // Entity velocity should be reset in y if they're moving in the y-direction and they collide with something above them
-        // The only way to check if we are colliding from underneath something is to try to go upward from a non-collided position (negative is up)
-        if (ent.vy > 0 && collidesParam(scanResult.destX, scanResult.destY - PARAMS.COLLISION.epsilon, ent.width, ent.height, collidedPlatform)) {
-            ent.vy = 0;
-        }
-
-        let collidesRight = collidesParam(scanResult.destX + 1, scanResult.destY, ent.width, ent.height, collidedPlatform);
-        let collidesLeft = collidesParam(scanResult.destX - 1, scanResult.destY, ent.width, ent.height, collidedPlatform);
-
-        // Choose the dominant direction to slide along the object in the y direction
-        if ((collidesLeft || collidesRight) && !(collidesLeft && collidesRight)) {
-            // Snap the entity's x-axis to the object where there is no repeated collision possible
-            let snapX = collidesRight ? collidedPlatform.x - ent.width - 1: collidedPlatform.x + collidedPlatform.width + 1;
-            
-            // Scan only upward from the snapped position and find the first (x,y) with no collision
-            scanResult = rayscan(ent,
-                (ent, t) => { return snapX }, 
-                (ent, t) => { return ent.y - Math.sign(ny) * t }, 
-                Math.abs(ent.vy));
-        }
-
-        ent.x = scanResult.destX;
-        ent.y = scanResult.destY;
-    } else {
-        ent.x += ent.vx;
-        ent.y -= ent.vy;
-    }
-
-    return true;
+    moveEntRayscan(scanResult, ent, ny);
 }
 
 if (canvas) {
