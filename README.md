@@ -26,3 +26,7 @@ and navigate to `localhost:3000` in your web browser.
 The player's velocity in the `y` direction should be 0 when on a platform. Bugs are introduced if the player is being "pushed down" while still on a platform, so instead check if the player is "in the air" by checking if they were to fall whether or not they would collide at some epsilon value.
 
 When the player hits an object from the side, slide them along the object instead but do a collision scan upward before moving them along the same magnitude of the vector they were going in.
+
+# TODOs
+
+- add interpolation for player movement
