@@ -13,15 +13,21 @@ app.get('/', function(req, res){
 
 var players = {};
 
-function makePlayer(uuid) {
+function makeServersidePlayer(uuid) {
     return {
         uuid: uuid,
-        x: 100,
-        y: 600,
+        position: {
+            x: 100,
+            y: 600,
+            interp: {
+                x: 100,
+                y: 600
+            },
+            vx : 0,
+            vy : 0
+        },
         width: 35,
         height: 35,
-        vx : 0,
-        vy : 0,
         color: "#FF0000",
         inAir: true
     };
@@ -36,7 +42,7 @@ io.on('connection', (socket) => {
     socket.emit('player.uuid', uuid);
     
     // Add the player to our dictionary
-    players[uuid] = makePlayer(uuid);
+    players[uuid] = makeServersidePlayer(uuid);
 
     // Let the player know about every player (including itself, we distinguish using uuid)
     socket.emit('players', players);

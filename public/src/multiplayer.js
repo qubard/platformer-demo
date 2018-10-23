@@ -2,14 +2,20 @@ var socket = io();
 
 var players = {};
 
-function makePlayer() {
+function makeClientsidePlayer() {
     return {
-        x: 100,
-        y: 600,
+        position: { 
+            x: 100,
+            y: 600,
+            interp: {
+                x: 100,
+                y: 600
+            },
+            vx : 0,
+            vy : 0
+        },
         width: 35,
         height: 35,
-        vx : 0,
-        vy : 0,
         color: "#FF0000",
         inAir: true
     };
@@ -17,7 +23,7 @@ function makePlayer() {
 
 socket.on('player.join', (msg) => {
     console.log("Player joined w/ uuid", msg.uuid);
-    let newPlayer = makePlayer();
+    let newPlayer = makeClientsidePlayer();
     newPlayer.uuid = msg.uuid;
     players[newPlayer.uuid] = newPlayer;
 });
@@ -39,8 +45,12 @@ socket.on('player.uuid', (msg) => {
 });
 
 socket.on('player.move', (msg) => {
-    if (!players[msg.uuid]) {
-        players[msg.uuid] = makePlayer();
-    }
+    let player = players[msg.uuid];
+
+    // Received a new position update of their current position, so set the last position to the current position
+    msg.position.interp.x = player.position.x;
+    msg.position.interp.y = player.position.y;
+    msg.position.interp.rate = 0.1;
+
     players[msg.uuid] = msg;
 });

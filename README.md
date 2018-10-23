@@ -1,6 +1,8 @@
 # platform-demo
 
-A simple pixel-perfect javascript platformer demo for showing a basic collision-checking approach with terrain. You can play it [here](https://upload.blueberrypancake.xyz/private/platformer-demo).
+A pixel-perfect javascript platformer demo for showing a basic collision-checking approach with terrain. You can play it [here](https://upload.blueberrypancake.xyz/private/platformer-demo).
+
+It also supports multiplayer with movement interpolation!
 
 # Collisions
 
@@ -29,4 +31,4 @@ When the player hits an object from the side, slide them along the object instea
 
 # TODOs
 
-- add interpolation for player movement
+- requirejs
