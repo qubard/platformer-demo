@@ -5,10 +5,15 @@ const io = require('socket.io')(http)
 
 const uuidv1 = require('uuid/v1');
 
+// Serve index.html
 app.use(express.static('public'))
 
 app.get('/', function(req, res){
     res.sendFile(__dirname + '/index.html');
+});
+
+http.listen(3000, () => {
+    console.log('listening on *:3000');
 });
 
 var players = {};
@@ -63,9 +68,4 @@ io.on('connection', (socket) => {
         players[uuid] = msg;
         socket.broadcast.emit('player.move', msg);
     });
-});
-
-// Serve index.html
-http.listen(3000, () => {
-    console.log('listening on *:3000');
 });
